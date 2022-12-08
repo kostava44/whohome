@@ -25,5 +25,6 @@ executable whohome
                     , bytestring
                     , network-simple
                     , libtelnet
+                    , monad-loops
     hs-source-dirs:   app
     default-language: GHC2021
