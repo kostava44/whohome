@@ -10,40 +10,40 @@ import Data.ByteString.Char8 qualified as B8
 import Network.Simple.TCP qualified as TCP (HostName, Socket, connect, recv, send)
 import Network.Telnet.LibTelnet qualified as Telnet
 
--- handle <- connect host
--- send handle bs
--- bs <- recv handle
-
 data State = State (MVar B8.ByteString) (MVar ())
 
 telnetH :: State -> TCP.Socket -> Telnet.EventHandler
 telnetH (State readBuf _) _ _ (Telnet.Received b) = putMVar readBuf b
-telnetH _ s _ (Telnet.Send b) =
-  putStr "S: " *> TCP.send s b
+telnetH _ s _ (Telnet.Send b) = TCP.send s b
 telnetH _ _ _ _ = pure ()
 
-handle :: State -> TCP.Socket -> IO ()
-handle state@(State _ done) s = do
-  telnet <- Telnet.telnetInit [] [] (telnetH state s)
+handle :: State -> Telnet.Telnet -> TCP.Socket -> IO ()
+handle (State _ done) telnet s = do
   whileJust_ (TCP.recv s 4096) $ \bs -> do
     Telnet.telnetRecv telnet bs
   putMVar done ()
 
-connect :: TCP.HostName -> (State -> IO a) -> IO ()
+connect :: TCP.HostName -> ((B8.ByteString -> IO (), IO B8.ByteString) -> IO a) -> IO ()
 connect host f = do
-  x <- newEmptyMVar
+  readBuf <- newEmptyMVar
   done <- newEmptyMVar
-  let state = State x done
-  concurrently_
-    (TCP.connect host "telnet" (\(s, _) -> handle state s))
-    ( race_
-        (takeMVar done)
-        (f state)
+  let state = State readBuf done
+  TCP.connect
+    host
+    "telnet"
+    ( \(s, _) -> do
+        telnet <- Telnet.telnetInit [] [] (telnetH state s)
+        concurrently_
+          (handle state telnet s)
+          ( race_
+              (takeMVar done)
+              ( let send = Telnet.telnetSend telnet
+                    recv = takeMVar readBuf
+                 in f (send, recv)
+              )
+          )
     )
-
-recv :: State -> IO B8.ByteString
-recv (State readBuf _) = takeMVar readBuf
 
 main :: IO ()
 main = do
-  connect "127.0.0.1" (\s -> forever $ recv s >>= B8.putStr)
+  connect "127.0.0.1" (\(_, recv) -> forever $ recv >>= B8.putStr)
