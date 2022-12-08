@@ -2,10 +2,22 @@
 
 module Main where
 
-import Control.Monad (forever)
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async (concurrently_)
+import Control.Monad (forever, void)
 import Data.ByteString.Char8 qualified as B8
 import TelnetSimple (connect)
 
 main :: IO ()
-main = do
-  connect "127.0.0.1" (\(_, recv) -> forever $ recv >>= B8.putStr)
+main =
+  void $
+    connect
+      "127.0.0.1"
+      ( \(send, recv) ->
+          concurrently_
+            (forever $ recv >>= B8.putStr)
+            ( do
+                threadDelay 100_000
+                send "root\n"
+            )
+      )
