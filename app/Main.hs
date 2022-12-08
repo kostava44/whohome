@@ -2,39 +2,44 @@
 
 module Main where
 
-import Control.Concurrent.Async ( concurrently_, race_ )
+import Control.Concurrent.Async (concurrently_, race_)
 import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
 import Control.Monad (forever)
 import Control.Monad.Loops (whileJust_)
 import Data.ByteString.Char8 qualified as B8
-import Network.Simple.TCP (Socket, connect, recv, send)
+import Network.Simple.TCP qualified as TCP (Socket, connect, recv, send)
 import Network.Telnet.LibTelnet qualified as Telnet
 
 -- handle <- connect host
 -- send handle bs
 -- bs <- recv handle
 
-telnetH :: MVar B8.ByteString -> Socket -> Telnet.EventHandler
-telnetH state _ _ (Telnet.Received b) =
-  putStr "R: " *> B8.putStrLn b *> putMVar state b
+data State = State (MVar B8.ByteString) (MVar ())
+
+telnetH :: State -> TCP.Socket -> Telnet.EventHandler
+telnetH (State readBuf _) _ _ (Telnet.Received b) = putMVar readBuf b
 telnetH _ s _ (Telnet.Send b) =
-  putStr "S: " *> send s b
+  putStr "S: " *> TCP.send s b
 telnetH _ _ _ _ = pure ()
 
-handle :: MVar B8.ByteString -> MVar () -> Socket -> IO ()
-handle state done s = do
+handle :: State -> TCP.Socket -> IO ()
+handle state@(State _ done) s = do
   telnet <- Telnet.telnetInit [] [] (telnetH state s)
-  whileJust_ (recv s 4096) $ \bs -> do
+  whileJust_ (TCP.recv s 4096) $ \bs -> do
     Telnet.telnetRecv telnet bs
   putMVar done ()
 
+recv :: State -> IO B8.ByteString
+recv (State readBuf _) = takeMVar readBuf
+
 main :: IO ()
 main = do
-  state <- newEmptyMVar
+  x <- newEmptyMVar
   done <- newEmptyMVar
+  let state = State x done
   concurrently_
-    (connect "127.0.0.1" "telnet" (\(s, _) -> handle state done s))
+    (TCP.connect "127.0.0.1" "telnet" (\(s, _) -> handle state s))
     ( race_
         (takeMVar done)
-        (forever $ takeMVar state >>= B8.putStrLn)
+        (forever $ recv state >>= B8.putStr)
     )
