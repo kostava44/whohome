@@ -23,6 +23,7 @@ executable whohome
   import:           warnings
   main-is:          Main.hs
   other-modules:
+    ParseMACs
     Secret
     TelnetSimple
 
@@ -31,7 +32,9 @@ executable whohome
     , async
     , base            ^>=4.17.0.0
     , bytestring
+    , ip
     , libtelnet
+    , megaparsec
     , monad-loops
     , network-simple
     , stm
