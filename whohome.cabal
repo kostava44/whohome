@@ -1,32 +1,40 @@
-cabal-version:      3.4
-name:               whohome
-version:            0.1.0.0
+cabal-version: 3.4
+name:          whohome
+version:       0.1.0.0
+
 -- synopsis:
 -- description:
-homepage:           https://github.com/kostava44/whohome
-license:            AGPL-3.0-or-later
-license-file:       LICENSE
-author:             wldhx
+homepage:      https://github.com/kostava44/whohome
+license:       AGPL-3.0-or-later
+license-file:  LICENSE
+author:        wldhx
+
 -- maintainer:
 -- copyright:
-category:           Network
-build-type:         Simple
+category:      Network
+build-type:    Simple
+
 -- extra-source-files:
 
 common warnings
-    ghc-options: -Wall
+  ghc-options: -Wall
 
 executable whohome
-    import:           warnings
-    main-is:          Main.hs
-    other-modules:    TelnetSimple, Secret
-    -- other-extensions:
-    build-depends:    base ^>=4.17.0.0
-                    , bytestring
-                    , network-simple
-                    , libtelnet
-                    , monad-loops
-                    , async
-                    , stm
-    hs-source-dirs:   app
-    default-language: GHC2021
+  import:           warnings
+  main-is:          Main.hs
+  other-modules:
+    Secret
+    TelnetSimple
+
+  -- other-extensions:
+  build-depends:
+    , async
+    , base            ^>=4.17.0.0
+    , bytestring
+    , libtelnet
+    , monad-loops
+    , network-simple
+    , stm
+
+  hs-source-dirs:   app
+  default-language: GHC2021
