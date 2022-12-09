@@ -1,10 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE PartialTypeSignatures #-}
 
-module ParseMACs where
+module ParseMACs (macsLenient) where
 
 import Control.Monad (void)
-import Data.Bits
+import Data.Bits (Bits (unsafeShiftL, (.|.)))
 import Data.ByteString.Char8 qualified as B8
 import Data.ByteString.Internal (c2w)
 import Data.Void (Void)
@@ -13,7 +12,7 @@ import Text.Megaparsec hiding (State)
 import Text.Megaparsec.Byte
 
 -- https://hackage.haskell.org/package/ip-1.7.6
-newtype Mac = Mac Word64 deriving (Show)
+newtype Mac = Mac Word64 deriving (Show, Eq)
 
 -- Unchecked invariant: each of these Word64s must be smaller
 -- than 256.
@@ -45,8 +44,8 @@ twoHex = do
   b <- hexDigitChar
   pure (unsafeShiftL a 4 + b)
 
-p :: Parsec Void B8.ByteString Mac
-p =
+mac :: Parsec Void B8.ByteString Mac
+mac =
   fromOctets
     <$> twoHex <* char (c2w ':')
     <*> twoHex <* char (c2w ':')
@@ -55,5 +54,8 @@ p =
     <*> twoHex <* char (c2w ':')
     <*> twoHex
 
-main :: IO ()
-main = parseTest (p <* eof) "de:ad:be:ef:ff:ff"
+macLenient :: Parsec Void B8.ByteString Mac
+macLenient = void (manyTill anySingle (lookAhead . try $ mac)) *> mac
+
+macsLenient :: Parsec Void B8.ByteString [Mac]
+macsLenient = many . try $ macLenient
