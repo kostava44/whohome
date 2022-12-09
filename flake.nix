@@ -37,6 +37,9 @@
               hlint.enable = true;
               cabal-fmt.enable = true;
             };
+            settings = {
+              ormolu.defaultExtensions = [ "ImportQualifiedPost" ];
+            };
           };
         };
         devShell =
