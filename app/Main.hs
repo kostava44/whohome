@@ -5,9 +5,10 @@ module Main where
 import Control.Concurrent (threadDelay)
 import Control.Monad (void)
 import Data.ByteString.Char8 qualified as B8
+import Secret qualified
 import TelnetSimple qualified as Telnet (State, connect, recvAll, send)
 
-sendCommand :: Telnet.State -> B8.ByteString -> IO [B8.ByteString]
+sendCommand :: Telnet.State -> B8.ByteString -> IO B8.ByteString
 sendCommand handle cmd = do
   threadDelay 100_000
   Telnet.send handle cmd
@@ -18,7 +19,10 @@ main :: IO ()
 main =
   void $
     Telnet.connect
-      "192.168.31.1"
+      Secret.destHost
       ( \telnet -> do
-          sendCommand telnet "root\n" >>= (mapM_ B8.putStr)
+          Secret.auth (void <$> sendCommand telnet)
+          buf <- sendCommand telnet "iwinfo wl0 assoclist\n"
+          B8.putStr buf
+          void $ sendCommand telnet "exit\n"
       )

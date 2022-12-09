@@ -31,8 +31,8 @@ send (State _ _ telnet) = Telnet.telnetSend telnet
 recv :: State -> IO B8.ByteString
 recv (State readBuf _ _) = atomically . STM.readTBQueue $ readBuf
 
-recvAll :: State -> IO [B8.ByteString]
-recvAll (State readBuf _ _) = atomically $ STM.flushTBQueue readBuf
+recvAll :: State -> IO B8.ByteString
+recvAll (State readBuf _ _) = atomically $ mconcat <$> STM.flushTBQueue readBuf
 
 connect :: TCP.HostName -> (State -> IO a) -> IO (Maybe a)
 connect host f = do

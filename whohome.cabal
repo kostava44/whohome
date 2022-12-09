@@ -19,7 +19,7 @@ common warnings
 executable whohome
     import:           warnings
     main-is:          Main.hs
-    other-modules:    TelnetSimple
+    other-modules:    TelnetSimple, Secret
     -- other-extensions:
     build-depends:    base ^>=4.17.0.0
                     , bytestring
