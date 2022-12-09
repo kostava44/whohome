@@ -28,9 +28,10 @@ main =
       ( \telnet -> do
           Secret.auth (voidCmd telnet)
           buf <- sendCommand telnet "iwinfo wl0 assoclist\n"
-          let macs = case parse Parse.macsLenient "" buf of
-                Left e -> fail (errorBundlePretty e)
-                Right x -> x
+          let macs =
+                Parse.encode <$> case parse Parse.macsLenient "" buf of
+                  Left e -> fail (errorBundlePretty e)
+                  Right x -> x
           print macs
           voidCmd telnet "exit\n"
       )
