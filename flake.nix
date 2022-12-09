@@ -45,7 +45,7 @@
           haskellPackages.shellFor {
             packages = p: [ self.packages.${system}.whohome ];
             withHoogle = true;
-            buildInputs = (with pkgs; [ ghcid cabal-install ])
+            buildInputs = (with pkgs; [ ghcid cabal-install ormolu hlint ])
             ++ (with haskellPackages; [ haskell-language-server ]);
             inherit (self.checks.${system}.pre-commit-check) shellHook;
           };
