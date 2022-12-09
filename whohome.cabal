@@ -23,12 +23,13 @@ executable whohome
   import:           warnings
   main-is:          Main.hs
   other-modules:
+    Config
     ParseMACs
-    Secret
     TelnetSimple
 
   -- other-extensions:
   build-depends:
+    , aeson
     , async
     , base            ^>=4.17.0.0
     , bytestring
@@ -37,6 +38,7 @@ executable whohome
     , monad-loops
     , network-simple
     , stm
+    , text
 
   hs-source-dirs:   app
   default-language: GHC2021
