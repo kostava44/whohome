@@ -27,10 +27,8 @@
         in haskellPackages.shellFor {
           packages = p: [ self.packages.${system}.whohome ];
           withHoogle = true;
-          buildInputs = (with pkgs; [ ghcid cabal-install nixfmt ])
+          buildInputs = (with pkgs; [ ghcid cabal-install nixfmt ormolu hlint ])
             ++ (with haskellPackages; [ haskell-language-server ]);
-          # Change the prompt to show that you are in a devShell
-          shellHook = "export PS1='\\e[1;34mdev > \\e[0m'";
         };
       });
 }
