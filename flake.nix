@@ -1,8 +1,12 @@
 {
   inputs.nixpkgs.url = "github:nixos/nixpkgs";
   inputs.flake-utils.url = "github:numtide/flake-utils";
+  inputs.pre-commit-hooks = {
+    url = "github:cachix/pre-commit-hooks.nix";
+    inputs.nixpkgs.follows = "nixpkgs";
+  };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, pre-commit-hooks }:
     {
       overlay = (final: prev: {
         whohome = final.haskell.packages.ghc94.callCabal2nix "whohome" ./. { };
@@ -20,15 +24,30 @@
           inherit system;
           overlays = [ self.overlay self.haskellOverrides ];
         };
-      in {
+      in
+      {
         packages = { whohome = pkgs.whohome; };
         defaultPackage = self.packages.${system}.whohome;
-        devShell = let haskellPackages = pkgs.haskell.packages.ghc94;
-        in haskellPackages.shellFor {
-          packages = p: [ self.packages.${system}.whohome ];
-          withHoogle = true;
-          buildInputs = (with pkgs; [ ghcid cabal-install nixfmt ormolu hlint ])
-            ++ (with haskellPackages; [ haskell-language-server ]);
+        checks = {
+          pre-commit-check = pre-commit-hooks.lib.${system}.run {
+            src = ./.;
+            hooks = {
+              nixpkgs-fmt.enable = true;
+              ormolu.enable = true;
+              hlint.enable = true;
+              cabal-fmt.enable = true;
+            };
+          };
         };
+        devShell =
+          let haskellPackages = pkgs.haskell.packages.ghc94;
+          in
+          haskellPackages.shellFor {
+            packages = p: [ self.packages.${system}.whohome ];
+            withHoogle = true;
+            buildInputs = (with pkgs; [ ghcid cabal-install ])
+            ++ (with haskellPackages; [ haskell-language-server ]);
+            inherit (self.checks.${system}.pre-commit-check) shellHook;
+          };
       });
 }
