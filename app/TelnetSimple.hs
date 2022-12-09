@@ -2,15 +2,17 @@ module TelnetSimple (connect) where
 
 import Control.Concurrent.Async (concurrently, race)
 import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
+import Control.Concurrent.STM qualified as STM
 import Control.Monad.Loops (whileJust_)
+import Control.Monad.STM (atomically)
 import Data.ByteString.Char8 qualified as B8
 import Network.Simple.TCP qualified as TCP (HostName, Socket, connect, recv, send)
 import Network.Telnet.LibTelnet qualified as Telnet
 
-data State = State (MVar B8.ByteString) (MVar ())
+data State = State (STM.TBQueue B8.ByteString) (MVar ())
 
 telnetH :: State -> TCP.Socket -> Telnet.EventHandler
-telnetH (State readBuf _) _ _ (Telnet.Received b) = putMVar readBuf b
+telnetH (State readBuf _) _ _ (Telnet.Received b) = atomically $ STM.writeTBQueue readBuf b
 telnetH _ s _ (Telnet.Send b) = TCP.send s b
 telnetH _ _ _ _ = pure ()
 
@@ -25,7 +27,7 @@ rightToMaybe = either (const Nothing) Just
 
 connect :: TCP.HostName -> ((B8.ByteString -> IO (), IO B8.ByteString) -> IO a) -> IO (Maybe a)
 connect host f = do
-  readBuf <- newEmptyMVar
+  readBuf <- STM.newTBQueueIO 10
   done <- newEmptyMVar
   let state = State readBuf done
 
@@ -40,7 +42,7 @@ connect host f = do
             ( race
                 (takeMVar done)
                 ( let send = Telnet.telnetSend telnet
-                      recv = takeMVar readBuf
+                      recv = atomically . STM.readTBQueue $ readBuf
                    in f (send, recv)
                 )
             )
