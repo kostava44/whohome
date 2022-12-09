@@ -32,7 +32,6 @@ executable whohome
     , async
     , base            ^>=4.17.0.0
     , bytestring
-    , ip
     , libtelnet
     , megaparsec
     , monad-loops

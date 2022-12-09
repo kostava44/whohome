@@ -15,28 +15,6 @@
         haskell = super0.haskell // {
           packageOverrides = self: super: {
             libtelnet = self0.haskell.lib.doJailbreak super.libtelnet;
-            wide-word = self0.haskell.lib.doJailbreak (self.callHackageDirect
-              {
-                pkg = "wide-word";
-                ver = "0.1.3.0";
-                sha256 = "sha256-Yzq6cfvnVBqCBl3o/qoC29gIR04030thvZcTY9Y6dQk=";
-              }
-              { });
-            bytebuild = self.callHackageDirect
-              {
-                pkg = "bytebuild";
-                ver = "0.3.12.0";
-                sha256 = "sha256-WuztvbLP3SfNbHQCRu2MmDSgFqv0C/SVByhm9wsopDo=";
-              }
-              { };
-            bytesmith = self.callCabal2nix "bytesmith"
-              (self0.fetchFromGitHub {
-                owner = "byteverse";
-                repo = "bytesmith";
-                rev = "fd011722d9264fdfa1df11f384a0a47de28d9126";
-                sha256 = "sha256-jOlsVteIGKhXamrtLajsZDpeNcJ2IEOQuVmAeUpQIdU=";
-              })
-              { };
           };
         };
       });
