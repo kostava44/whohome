@@ -15,14 +15,17 @@ sendCommand handle cmd = do
   threadDelay 100_000
   Telnet.recvAll handle
 
+voidCmd :: Telnet.State -> B8.ByteString -> IO ()
+voidCmd = (fmap . fmap) void sendCommand
+
 main :: IO ()
 main =
   void $
     Telnet.connect
       Secret.destHost
       ( \telnet -> do
-          Secret.auth (void <$> sendCommand telnet)
+          Secret.auth (voidCmd telnet)
           buf <- sendCommand telnet "iwinfo wl0 assoclist\n"
           B8.putStr buf
-          void $ sendCommand telnet "exit\n"
+          voidCmd telnet "exit\n"
       )
