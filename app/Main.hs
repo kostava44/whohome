@@ -3,21 +3,22 @@
 module Main where
 
 import Control.Concurrent (threadDelay)
-import Control.Concurrent.Async (concurrently_)
-import Control.Monad (forever, void)
+import Control.Monad (void)
 import Data.ByteString.Char8 qualified as B8
-import TelnetSimple (connect)
+import TelnetSimple qualified as Telnet (State, connect, recvAll, send)
+
+sendCommand :: Telnet.State -> B8.ByteString -> IO [B8.ByteString]
+sendCommand handle cmd = do
+  threadDelay 100_000
+  Telnet.send handle cmd
+  threadDelay 100_000
+  Telnet.recvAll handle
 
 main :: IO ()
 main =
   void $
-    connect
-      "127.0.0.1"
-      ( \(send, recv) ->
-          concurrently_
-            (forever $ recv >>= B8.putStr)
-            ( do
-                threadDelay 100_000
-                send "root\n"
-            )
+    Telnet.connect
+      "192.168.31.1"
+      ( \telnet -> do
+          sendCommand telnet "root\n" >>= (mapM_ B8.putStr)
       )
