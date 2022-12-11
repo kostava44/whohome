@@ -1,0 +1,50 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 17e0766..9d336e1 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -18,6 +18,7 @@ else ()
+ endif ()
+ 
+ add_library(libtelnet libtelnet.c)
++set_target_properties(libtelnet PROPERTIES PREFIX "")
+ 
+ target_include_directories(libtelnet
+     PUBLIC
+@@ -28,7 +29,6 @@ target_include_directories(libtelnet
+ )
+ 
+ add_subdirectory(util)
+-add_subdirectory(doc)
+ add_subdirectory(test)
+ 
+ include(GNUInstallDirs)
+@@ -40,6 +40,9 @@ install(TARGETS libtelnet
+     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+ )
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtelnet.pc
++    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
++)
+ install(FILES libtelnet.h
+     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+ )
+@@ -48,4 +51,4 @@ install(EXPORT libtelnet-export
+     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/libtelnet
+ )
+ 
+-include(CPack)
+\ No newline at end of file
++include(CPack)
+diff --git a/libtelnet.pc.in b/libtelnet.pc.in
+index 74c9e9c..2c6379a 100644
+--- a/libtelnet.pc.in
++++ b/libtelnet.pc.in
+@@ -5,5 +5,5 @@ Name: libtelnet
+ Description: @PROJECT_DESCRIPTION@
+ URL: @PROJECT_HOMEPAGE_URL@
+ Version: @PROJECT_VERSION@
+-Libs: -L${libdir} -ltelnet
+-Cflags: -I${includedir}
+\ No newline at end of file
++Libs: -L@CMAKE_INSTALL_FULL_LIBDIR@ -ltelnet
++Cflags: -I@CMAKE_INSTALL_FULL_INCLUDEDIR@
