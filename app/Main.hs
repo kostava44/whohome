@@ -46,4 +46,4 @@ main = do
         Left e -> fail e
         Right x -> pure x
   macs <- mapM fetchMacs config
-  print $ HashSet.fromList . mconcat $ macs
+  print $ HashSet.toList . HashSet.fromList . mconcat $ macs
