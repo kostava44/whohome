@@ -8,6 +8,7 @@ import Control.Concurrent (threadDelay)
 import Control.Monad (void)
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Char8 qualified as B8
+import Data.HashSet qualified as HashSet
 import ParseMACs qualified as Parse
 import TelnetSimple qualified as Telnet (State, connect, recvAll, send)
 import Text.Megaparsec hiding (State)
@@ -22,25 +23,26 @@ sendCommand handle cmd = do
 voidCmd :: Telnet.State -> B8.ByteString -> IO ()
 voidCmd = (fmap . fmap) void sendCommand
 
+fetchMacs :: Host -> IO [B8.ByteString]
+fetchMacs config =
+  Telnet.connect
+    (hostname config)
+    ( \telnet -> do
+        voidCmd telnet (username config)
+        voidCmd telnet (password config)
+
+        buf <- sendCommand telnet "iwinfo wl0 assoclist"
+        pure $
+          Parse.encode <$> case parse Parse.macsLenient "" buf of
+            Left e -> fail (errorBundlePretty e)
+            Right x -> x
+    )
+
 main :: IO ()
 main = do
   config <-
     Aeson.eitherDecodeFileStrict' "./whohome.json" >>= \case
       Left e -> fail e
       Right x -> pure x
-  void $
-    Telnet.connect
-      (hostname config)
-      ( \telnet -> do
-          voidCmd telnet (username config)
-          voidCmd telnet (password config)
-
-          buf <- sendCommand telnet "iwinfo wl0 assoclist"
-          let macs =
-                Parse.encode <$> case parse Parse.macsLenient "" buf of
-                  Left e -> fail (errorBundlePretty e)
-                  Right x -> x
-          print macs
-
-          voidCmd telnet "exit"
-      )
+  macs <- mapM fetchMacs config
+  print $ HashSet.fromList . mconcat $ macs

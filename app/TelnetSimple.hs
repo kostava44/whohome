@@ -1,6 +1,6 @@
 module TelnetSimple (State, connect, send, recv, recvAll) where
 
-import Control.Concurrent.Async (concurrently, race)
+import Control.Concurrent.Async
 import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar, takeMVar)
 import Control.Concurrent.STM qualified as STM
 import Control.Monad.Loops (whileJust_)
@@ -22,9 +22,6 @@ handle (State _ done telnet) s = do
     Telnet.telnetRecv telnet bs
   putMVar done ()
 
-rightToMaybe :: Either a b -> Maybe b
-rightToMaybe = either (const Nothing) Just
-
 send :: State -> B8.ByteString -> IO ()
 send (State _ _ telnet) = Telnet.telnetSend telnet
 
@@ -34,23 +31,19 @@ recv (State readBuf _ _) = atomically . STM.readTBQueue $ readBuf
 recvAll :: State -> IO B8.ByteString
 recvAll (State readBuf _ _) = atomically $ mconcat <$> STM.flushTBQueue readBuf
 
-connect :: TCP.HostName -> (State -> IO a) -> IO (Maybe a)
+connect :: TCP.HostName -> (State -> IO a) -> IO a
 connect host f = do
   TCP.connect
     host
     "telnet"
     ( \(sock, _) -> do
-        state@(State _ done _) <- do
-          readBuf <- STM.newTBQueueIO 10
-          done <- newEmptyMVar
-          telnet <- Telnet.telnetInit [] [] (telnetH readBuf sock)
-          pure $ State readBuf done telnet
-        (_, r) <-
-          concurrently
-            (handle state sock)
-            ( race
-                (takeMVar done)
-                (f state)
-            )
-        pure (rightToMaybe r)
+        readBuf <- STM.newTBQueueIO 10
+        done <- newEmptyMVar
+        telnet <- Telnet.telnetInit [] [] (telnetH readBuf sock)
+        let state = State readBuf done telnet
+
+        withAsync (handle state sock) $ \_ ->
+          withAsync (f state) $ \a ->
+            withAsync (takeMVar done >> cancel a) $ \_ ->
+              wait a
     )
