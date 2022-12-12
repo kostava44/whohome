@@ -41,8 +41,9 @@ fetchMacs config =
 main :: IO ()
 main = do
   config <-
-    Aeson.eitherDecodeFileStrict' "./whohome.json" >>= \case
-      Left e -> fail e
-      Right x -> pure x
+    (B8.getContents >>=) $
+      (. Aeson.eitherDecodeStrict) $ \case
+        Left e -> fail e
+        Right x -> pure x
   macs <- mapM fetchMacs config
   print $ HashSet.fromList . mconcat $ macs
