@@ -25,7 +25,7 @@ voidCmd = (fmap . fmap) void sendCommand
 main :: IO ()
 main = do
   config <-
-    Aeson.eitherDecodeFileStrict' "./config.json" >>= \case
+    Aeson.eitherDecodeFileStrict' "./whohome.json" >>= \case
       Left e -> fail e
       Right x -> pure x
   void $
