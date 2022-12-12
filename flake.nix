@@ -61,6 +61,7 @@
         packages = {
           whohome = pkgs.whohome;
           whohome_static = pkgs.pkgsStatic.whohome;
+          whohome_static_force_aarch64 = pkgs.pkgsCross.aarch64-multiplatform.pkgsStatic.whohome;
         };
         defaultPackage = self.packages.${system}.whohome;
         checks = {
