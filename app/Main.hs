@@ -1,17 +1,19 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
 import Config
 import Control.Concurrent (threadDelay)
-import Control.Monad (void)
+import Control.Monad (forM, void)
 import Data.Aeson qualified as Aeson
 import Data.ByteString.Char8 qualified as B8
-import Data.HashSet qualified as HashSet
+import Data.ByteString.Lazy qualified as BL
+import Data.HashMap.Strict qualified as HashMap
 import ParseMACs qualified as Parse
 import TelnetSimple qualified as Telnet (State, connect, recvAll, send)
-import Text.Megaparsec hiding (State)
+import Text.Megaparsec hiding (State, label)
 
 sendCommand :: Telnet.State -> B8.ByteString -> IO B8.ByteString
 sendCommand handle cmd = do
@@ -24,12 +26,12 @@ voidCmd :: Telnet.State -> B8.ByteString -> IO ()
 voidCmd = (fmap . fmap) void sendCommand
 
 fetchMacs :: Host -> IO [B8.ByteString]
-fetchMacs config =
+fetchMacs Host {..} =
   Telnet.connect
-    (hostname config)
+    hostname
     ( \telnet -> do
-        voidCmd telnet (username config)
-        voidCmd telnet (password config)
+        voidCmd telnet username
+        voidCmd telnet password
 
         buf <- sendCommand telnet "iwinfo wl0 assoclist"
         pure $
@@ -45,5 +47,8 @@ main = do
       (. Aeson.eitherDecodeStrict) $ \case
         Left e -> fail e
         Right x -> pure x
-  macs <- mapM fetchMacs config
-  print $ HashSet.toList . HashSet.fromList . mconcat $ macs
+  macs <- forM config $ \c -> do
+    m <- fetchMacs c
+    let l = Config.label c
+    pure (l, m)
+  BL.putStr $ Aeson.encode $ HashMap.fromList macs
