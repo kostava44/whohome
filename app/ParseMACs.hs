@@ -64,17 +64,17 @@ encode m =
   BL.toStrict $
     BB.toLazyByteString $
       let (a, b, c, d, e, f) = toOctets m
-       in BB.word8Hex a
+       in BB.word8HexFixed a
             <> BB.char8 ':'
-            <> BB.word8Hex b
+            <> BB.word8HexFixed b
             <> BB.char8 ':'
-            <> BB.word8Hex c
+            <> BB.word8HexFixed c
             <> BB.char8 ':'
-            <> BB.word8Hex d
+            <> BB.word8HexFixed d
             <> BB.char8 ':'
-            <> BB.word8Hex e
+            <> BB.word8HexFixed e
             <> BB.char8 ':'
-            <> BB.word8Hex f
+            <> BB.word8HexFixed f
 
 twoHex :: Parsec Void B8.ByteString Word8
 twoHex = do
